@@ -1,6 +1,6 @@
 /*
  * ============================================
- *   Briefkasten-Wächter v2.1 - LoRa Sender
+ *   Briefkasten-Wächter v2.2 - LoRa Sender
  *   Board: LILYGO T-Beam v1.2 (AXP2101)
  * ============================================
  * 
@@ -10,7 +10,14 @@
  *   - Sendet LoRa-Nachricht an Gateway in der Wohnung
  *   - Gateway macht den ntfy.sh Push (WLAN braucht der T-Beam nicht mehr!)
  * 
- * Änderungen ggü. v2.0:
+ * Änderungen ggü. v2.1:
+ *   - OLED-Display per I2C-Befehl in Schlafmodus (~15mA gespart)
+ *     Auf T-Beam v1.2 hängt OLED auf DCDC1 zusammen mit dem ESP32,
+ *     kann also nicht per PMU abgeschaltet werden. Stattdessen per
+ *     SSD1306-Kommando 0xAE (Display off) + 0x8D 0x10 (Charge Pump off).
+ *   - Lade-LED ausschalten (~5-10mA gespart)
+ *
+ * Änderungen v2.0 → v2.1:
  *   - GPS-Modul (ALDO3) wird deaktiviert: ~30-50mA gespart
  *   - Weitere ungenutzte Spannungsschienen aus (ALDO4, BLDO1, BLDO2)
  *   - LoRa-Power (ALDO2) wird vor Deep Sleep abgeschaltet
@@ -19,6 +26,7 @@
  *   - Reed-Switch: blau(COM)→GND, schwarz(NC)→GPIO25
  *   - LoRa: SX1276 auf T-Beam (868 MHz)
  *   - PMU: AXP2101 (Akku-Management)
+ *   - OLED: SSD1306 auf I2C-Adresse 0x3C
  * 
  * Libraries (Arduino IDE → Sketch → Bibliothek einbinden → Bibliotheken verwalten):
  *   - RadioLib       (Suche: "RadioLib")
@@ -80,10 +88,13 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
+  // I2C früh initialisieren (für OLED-Sleep, auch bei Fehlauslösung)
+  Wire.begin(I2C_SDA, I2C_SCL);
+
   openCount++;
   Serial.println();
   Serial.println("========================================");
-  Serial.println("  Briefkasten-Wächter v2.1 (LoRa)");
+  Serial.println("  Briefkasten-Wächter v2.2 (LoRa)");
   Serial.printf("  Öffnung #%d\n", openCount);
   Serial.println("========================================");
 
@@ -172,8 +183,6 @@ bool debounceReed() {
 //  PMU (AXP2101) initialisieren
 // ==========================================
 bool initPMU() {
-  Wire.begin(I2C_SDA, I2C_SCL);
-
   if (!pmu.begin(Wire, AXP2101_SLAVE_ADDRESS, I2C_SDA, I2C_SCL)) {
     return false;
   }
@@ -191,13 +200,42 @@ bool initPMU() {
   pmu.disableBLDO1();
   pmu.disableBLDO2();
 
+  // Lade-LED ausschalten (zieht im "always on"-Default 5-10mA)
+  pmu.setChargingLedMode(XPOWERS_CHG_LED_OFF);
+
   return true;
+}
+
+// ==========================================
+//  OLED in Schlafmodus versetzen
+//  SSD1306 hängt auf DCDC1 (zusammen mit ESP32),
+//  kann nicht per PMU abgeschaltet werden.
+//  Aber: per I2C-Befehl kann der Chip selbst in Sleep gehen.
+// ==========================================
+void sleepOLED() {
+  const uint8_t OLED_ADDR = 0x3C;  // Standard-Adresse des SSD1306 auf T-Beam
+
+  // Display OFF
+  Wire.beginTransmission(OLED_ADDR);
+  Wire.write(0x00);  // Co=0, D/C=0 (Befehlsmodus)
+  Wire.write(0xAE);  // Display OFF
+  Wire.endTransmission();
+
+  // Charge Pump deaktivieren (spart nochmal ein paar mA)
+  Wire.beginTransmission(OLED_ADDR);
+  Wire.write(0x00);
+  Wire.write(0x8D);  // Charge Pump Setting
+  Wire.write(0x10);  // Charge Pump OFF
+  Wire.endTransmission();
 }
 
 // ==========================================
 //  Deep Sleep konfigurieren und starten
 // ==========================================
 void goToSleep() {
+  // OLED-Chip in Schlafmodus (spart ~15mA)
+  sleepOLED();
+
   // LoRa in Sleep-Modus (Strom sparen)
   radio.sleep();
 
