@@ -9,6 +9,14 @@
 
 ---
 
+## ⚡ Version History
+
+| Version | Battery Life | Change |
+|---------|-------------|--------|
+| **v2.2 (Current)** | ~20 days | All peripherals properly disabled in deep sleep |
+| v2.1 | 2-3 days | GPS disabled |
+| v1.0 | 2 days | GPS always on (oops) |
+
 Get a push notification on your phone the moment someone opens your mailbox. Built with a T-Beam, a Heltec LoRa gateway, and a magnetic reed switch.
 
 ![Mailbox open with T-Beam installed](images/mailbox_open.jpeg)
