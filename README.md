@@ -1,5 +1,14 @@
 # 📬 Smart Mailbox — LoRa Push Notifications
 
+## 🌟 Featured On Reddit
+
+[![r/homeautomation #2](https://img.shields.io/badge/r%2Fhomeautomation-%232%20Post%20of%20the%20Day-blue?style=for-the-badge&logo=reddit)](https://www.reddit.com/r/homeautomation/)
+[![r/esp32 #6](https://img.shields.io/badge/r%2Fesp32-%236%20Post%20of%20the%20Day-orange?style=for-the-badge&logo=reddit)](https://www.reddit.com/r/esp32/)
+
+**20K+ views combined** • Active community discussions • Featured in top DIY electronics communities
+
+---
+
 Get a push notification on your phone the moment someone opens your mailbox. Built with a T-Beam, a Heltec LoRa gateway, and a magnetic reed switch.
 
 ![Mailbox open with T-Beam installed](images/mailbox_open.jpeg)
